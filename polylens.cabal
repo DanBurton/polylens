@@ -1,0 +1,22 @@
+name:                polylens
+version:             1.0.0.0
+synopsis:            Lenses with polymorphic update
+description:         A TH implementation of "van Laarhoven Lenses"
+                     as described by Russel O'Connor.
+                     See http://r6.ca/blog/20120623T104901Z.html
+homepage:            http://github.com/DanBurton/polylens
+license:             BSD3
+license-file:        LICENSE
+author:              Dan Burton
+maintainer:          danburton.email@gmail.com
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.8
+extra-source-files:  examples/*
+
+library
+  exposed-modules:     Data.PolyLens
+  build-depends:       base ==4.*
+                     , template-haskell ==2.*
+                     , transformers ==0.*
+                     , mtl ==2.*
