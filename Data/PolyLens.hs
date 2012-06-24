@@ -24,9 +24,16 @@ mkPolyLensBy nameTransform datatype = do
   let constructorFields = case i of
         TyConI (DataD    _ _ _ [RecC _ fs] _) -> fs
         TyConI (NewtypeD _ _ _ (RecC _ fs) _) -> fs
-        _ -> error "Deriving van Laarhoven lens failed"
+        TyConI TySynD{} ->
+          error $ "Can't derive PolyLens for type synonym: " ++ datatypeStr
+        TyConI DataD{}  ->
+          error $ "Can't derive PolyLens for tagged union: " ++ datatypeStr
+        _ ->
+          error $ "Not sure how to derive a PolyLens for: "  ++ datatypeStr
   mapM (derive nameTransform) $ map fst' constructorFields
-  where fst' (x, _, _) = x
+  where
+    fst' (x, _, _) = x
+    datatypeStr = nameBase datatype
 
 -- given a record field name,
 -- produces a single function declaration:
