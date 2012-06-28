@@ -60,12 +60,12 @@ infixr 4 ^=
 l ^= v = l %= const v
 
 
-type Getter a b r a' b' = PolyLens a a' b  b' (Getting r)
+type Getter a b r       = PolyLens a a  b  b  (Getting r)
 type Setter a b' a'     = PolyLens a a' () b' Setting
 type Modifier a a' b b' = PolyLens a a' b  b' Setting
 
 
-getting :: (a -> b) -> Getter a b r a' b'
+getting :: (a -> b) -> Getter a b r
 getting g f = Getting . got . f . g
 
 setting :: (a -> b' -> a') -> Setter a b' a'
@@ -87,7 +87,8 @@ data Store c d b = Store (d -> b) c
 instance Functor (Store c d) where
   fmap f (Store g c) = Store (f . g) c
 
-clone :: Functor f => PolyLens a a' b b' (Store b b')
+clone :: Functor f
+      => PolyLens a a' b b' (Store b b')
       -> PolyLens a a' b b' f
 clone l f a = case l (Store id) a of
   Store g c -> fmap g (f c)

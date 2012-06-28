@@ -37,17 +37,17 @@ traverseLens :: ((c -> c) -> a -> b) -> a -> b
 traverseLens f = f id
 
 
-getFst :: Getter (a, b) a r a' b'
+getFst :: Getter (a, b) a r
 getFst = getting fst
 
-getSnd :: Getter (a, b) b r a' b'
+getSnd :: Getter (a, b) b r
 getSnd = getting snd
 
 
-getPhase :: RealFloat a => Getter (Complex a) a r a' b'
+getPhase :: RealFloat a => Getter (Complex a) a r
 getPhase = getting phase
 
-getAbs, getSignum :: Num a => Getter a a r a' b'
+getAbs, getSignum :: Num a => Getter a a r
 getAbs = getting abs
 getSignum = getting signum
 
