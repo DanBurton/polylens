@@ -51,7 +51,7 @@ derive nameTransform field = funD lensName [defLine]
     record rec fld val = val >>= \v -> recUpdE (varE rec) [return (fld, v)]
 
 -- getter
-infixl 9 ^.
+infixl 8 ^.
 (^.) :: a -> ((b -> Const b b') -> a -> Const b a') -> b
 x ^. l = getConst $ l Const x
 
