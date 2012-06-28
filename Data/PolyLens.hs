@@ -21,6 +21,8 @@ module Data.PolyLens (
 
   , lens
   , iso
+
+  , clone
   ) where
 
 import Data.PolyLensTH as TH
@@ -78,3 +80,14 @@ lens f g h a = fmap (g a) (h (f a))
 
 iso :: Functor f => (a -> b) -> (b' -> a') -> PolyLens a a' b b' f
 iso f g h a = fmap g (h (f a))
+
+
+data Store c d b = Store (d -> b) c
+
+instance Functor (Store c d) where
+  fmap f (Store g c) = Store (f . g) c
+
+clone :: Functor f => PolyLens a a' b b' (Store b b')
+      -> PolyLens a a' b b' f
+clone l f a = case l (Store id) a of
+  Store g c -> fmap g (f c)
