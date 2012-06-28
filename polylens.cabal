@@ -18,5 +18,3 @@ library
   exposed-modules:     Data.PolyLens
   build-depends:       base ==4.*
                      , template-haskell ==2.*
-                     , transformers ==0.*
-                     , mtl ==2.*

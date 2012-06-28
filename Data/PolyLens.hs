@@ -1,66 +1,80 @@
-{-# LANGUAGE QuasiQuotes, TemplateHaskell #-}
-
 module Data.PolyLens (
-    mkPolyLens
-  , mkPolyLensBy
-  
+    module TH
+
+  , PolyLens
+  , Lens
+
+  , Getting
+  , Setting
+
   , (^.)
-  , (%=)
   , (^=)
+  , (%=)
+
+  , Getter
+  , Setter
+  , Modifier
+
+  , getting
+  , setting
+  , modifying
+
+  , lens
+  , iso
   ) where
 
-import Control.Applicative
-import Control.Applicative (Const(..), (<$>))
-import Control.Monad.Identity (Identity(..))
-import Data.Functor.Compose (Compose(..))
-import Language.Haskell.TH
+import Data.PolyLensTH as TH
 
-mkPolyLens :: Name -> Q [Dec]
-mkPolyLens = mkPolyLensBy (drop 1)
 
-mkPolyLensBy :: (String -> String) -> Name -> Q [Dec]
-mkPolyLensBy nameTransform datatype = do
-  i <- reify datatype
-  let constructorFields = case i of
-        TyConI (DataD    _ _ _ [RecC _ fs] _) -> fs
-        TyConI (NewtypeD _ _ _ (RecC _ fs) _) -> fs
-        TyConI TySynD{} ->
-          error $ "Can't derive PolyLens for type synonym: " ++ datatypeStr
-        TyConI DataD{}  ->
-          error $ "Can't derive PolyLens for tagged union: " ++ datatypeStr
-        _ ->
-          error $ "Not sure how to derive a PolyLens for: "  ++ datatypeStr
-  mapM (derive nameTransform) $ map fst' constructorFields
-  where
-    fst' (x, _, _) = x
-    datatypeStr = nameBase datatype
+type PolyLens a a' b b' f =
+  (b -> f b') -> a -> f a'
 
--- given a record field name,
--- produces a single function declaration:
--- lensName p f = (\x -> p { field = x }) <$> f (field p)
-derive :: (String -> String) -> Name -> Q Dec
-derive nameTransform field = funD lensName [defLine]
-  where
-    lensName = mkName (nameTransform (nameBase field))
-    p = mkName "p"
-    f = mkName "f"
-    defLine = clause pats (normalB body) []
-    pats = [varP f, varP p]
-    body = [| (\x -> $(record p field [|x|]) )
-              <$> $(appE (varE f) (appE (varE field) (varE p))) |]
-    record rec fld val = val >>= \v -> recUpdE (varE rec) [return (fld, v)]
+type Lens a b f = PolyLens a a b b f
+
+
+newtype Getting b a = Getting { got :: b }
+instance Functor (Getting b) where
+  fmap _ (Getting b) = Getting b
+
+
+newtype Setting a = Setting { unsetting :: a }
+instance Functor Setting where
+  fmap f (Setting a) = Setting (f a)
+
 
 -- getter
 infixl 8 ^.
-(^.) :: a -> ((b -> Const b b') -> a -> Const b a') -> b
-x ^. l = getConst $ l Const x
+(^.) :: a -> PolyLens a a' b b' (Getting b) -> b
+x ^. l = got $ l Getting x
 
 -- modifier
 infixr 4 %=
-(%=) :: ((b -> Identity b') -> a -> Identity a') -> (b -> b') -> a -> a'
-l %= f = runIdentity . l (Identity . f)
+(%=) :: PolyLens a a' b b' Setting -> (b -> b') -> a -> a'
+l %= f = unsetting . l (Setting . f)
 
 -- setter
 infixr 4 ^=
-(^=) :: ((b -> Identity b') -> a -> Identity a') -> b' -> a -> a'
-l ^= v = l %= (const v)
+(^=) :: PolyLens a a' b b' Setting -> b' -> a -> a'
+l ^= v = l %= const v
+
+
+type Getter a b r a' b' = PolyLens a a' b  b' (Getting r)
+type Setter a b' a'     = PolyLens a a' () b' Setting
+type Modifier a a' b b' = PolyLens a a' b  b' Setting
+
+
+getting :: (a -> b) -> Getter a b r a' b'
+getting g f = Getting . got . f . g
+
+setting :: (a -> b' -> a') -> Setter a b' a'
+setting f g a = Setting (f a (unsetting (g ())))
+
+modifying :: ((b -> b') -> a -> a') -> Modifier a a' b b'
+modifying f g a = Setting (f (unsetting . g) a)
+
+
+lens :: Functor f => (a -> b) -> (a -> b' -> a') -> PolyLens a a' b b' f
+lens f g h a = fmap (g a) (h (f a))
+
+iso :: Functor f => (a -> b) -> (b' -> a') -> PolyLens a a' b b' f
+iso f g h a = fmap g (h (f a))
