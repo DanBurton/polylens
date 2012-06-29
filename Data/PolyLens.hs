@@ -11,6 +11,10 @@ module Data.PolyLens (
   , (^=)
   , (%=)
 
+  , get
+  , set
+  , modify
+
   , Getter
   , Setter
   , Modifier
@@ -49,15 +53,23 @@ infixl 8 ^.
 (^.) :: a -> PolyLens a a' b b' (Getting b) -> b
 x ^. l = got $ l Getting x
 
+get :: PolyLens a a' b b' (Getting b) -> a -> b
+get = flip (^.)
+
+
 -- modifier
 infixr 4 %=
-(%=) :: PolyLens a a' b b' Setting -> (b -> b') -> a -> a'
+(%=), modify :: PolyLens a a' b b' Setting -> (b -> b') -> a -> a'
 l %= f = unsetting . l (Setting . f)
+
+modify = (%=)
 
 -- setter
 infixr 4 ^=
-(^=) :: PolyLens a a' b b' Setting -> b' -> a -> a'
+(^=), set :: PolyLens a a' b b' Setting -> b' -> a -> a'
 l ^= v = l %= const v
+
+set = (^=)
 
 
 type Getter a b r       = PolyLens a a  b  b  (Getting r)
